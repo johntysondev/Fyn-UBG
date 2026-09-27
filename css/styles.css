@@ -161,7 +161,7 @@ html, body {
   text-align: center;
 }
 
-.evil-loader {
+.fyn-loader {
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -171,15 +171,15 @@ html, body {
   user-select: none;
 }
 
-.evil-loader .el-letter {
+.fyn-loader .fyn-letter {
   font-size: 34px;
   line-height: 1;
   color: var(--text-primary);
-  animation: evil-bounce 1.1s infinite ease-in-out;
+  animation: fyn-bounce 1.1s infinite ease-in-out;
   animation-delay: calc(var(--i) * 0.12s);
 }
 
-.evil-loader .el-tag {
+.fyn-loader .fyn-tag {
   margin-left: 8px;
   margin-bottom: 5px;
   padding: 3px 6px;
@@ -190,15 +190,15 @@ html, body {
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 1px;
-  animation: evil-blink 1.1s infinite ease-in-out;
+  animation: fyn-blink 1.1s infinite ease-in-out;
 }
 
-@keyframes evil-bounce {
+@keyframes fyn-bounce {
   0%, 100% { transform: translateY(0); opacity: 0.35; }
   50% { transform: translateY(-10px); opacity: 1; }
 }
 
-@keyframes evil-blink {
+@keyframes fyn-blink {
   0%, 100% { opacity: 0.35; }
   50% { opacity: 1; }
 }
@@ -260,7 +260,7 @@ html, body {
   text-align: left;
 }
 
-.nav-brand-evil {
+.nav-brand-name {
   color: var(--text-primary);
   font-family: var(--font-logo);
   font-size: 26px;
@@ -761,13 +761,13 @@ body[data-layout="side"] .browser-top {
   cursor: pointer;
 }
 
-.evil-glitch-word {
+.fyn-word {
   position: relative;
   display: inline-block;
   color: var(--text-primary);
 }
 
-.brand-logo-text:hover .evil-glitch-word {
+.brand-logo-text:hover .fyn-word {
   opacity: 0.8;
 }
 

@@ -334,7 +334,7 @@
     document.querySelectorAll('.browser-tab').forEach(function (tab) {
       tab.classList.toggle('active', tab.dataset.tabId === id);
     });
-    if (ui.browserAddr) ui.browserAddr.value = 'evil://' + id;
+    if (ui.browserAddr) ui.browserAddr.value = 'fyn://' + id;
     ui.homeView.classList.toggle('hidden', id !== 'home');
     ui.catalogView.classList.toggle('hidden', ['games', 'random', 'bookmarks'].indexOf(id) < 0);
     ui.settingsView.classList.toggle('hidden', id !== 'settings');
@@ -497,7 +497,7 @@
   function wire() {
     if (ui.logo) {
       ui.logo.addEventListener('click', function () {
-        notify('evil ubg', pics.home);
+        notify('fyn ubg', pics.home);
       });
     }
 
