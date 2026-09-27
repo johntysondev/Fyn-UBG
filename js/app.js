@@ -22,6 +22,7 @@
     panicUrl: read('evil_ubg_panic_url', 'https://classroom.google.com'),
     antiClose: read('evil_ubg_anti_close', 'false') === 'true',
     launch: read('evil_ubg_launch', 'player'),
+    layout: read('evil_ubg_layout', ''),
     searchMode: read('evil_ubg_searchmode', 'games'),
     density: read('evil_ubg_density', 'normal'),
     motion: read('evil_ubg_motion', 'on'),
@@ -49,6 +50,10 @@
     loaderScreen: $('loader-screen'),
     loaderBar: $('loader-bar'),
     tabList: $('side-nav-list'),
+    browserTabs: $('browser-tab-strip'),
+    browserAddr: $('browser-address'),
+    browserFs: $('browser-fullscreen-btn'),
+    chooser: $('layout-chooser'),
     navBrand: $('nav-brand'),
     navFs: $('nav-fullscreen-btn'),
     homeView: $('hero-home-view'),
@@ -64,6 +69,7 @@
     fontGrid: $('font-selector-grid'),
     themeGrid: $('theme-selector-grid'),
     launchGrid: $('launch-selector-grid'),
+    layoutGrid: $('layout-selector-grid'),
     searchModeGrid: $('searchmode-selector-grid'),
     densityGrid: $('density-selector-grid'),
     motionGrid: $('motion-selector-grid'),
@@ -192,6 +198,14 @@
     markActive(ui.launchGrid, 'launch', v);
   }
 
+  function setLayout(key) {
+    const v = (key === 'browser') ? 'browser' : 'side';
+    prefs.layout = v;
+    write('evil_ubg_layout', v);
+    document.body.dataset.layout = v;
+    markActive(ui.layoutGrid, 'layout', v);
+  }
+
   function setSearchMode(key) {
     const v = (key === 'google') ? 'google' : 'games';
     prefs.searchMode = v;
@@ -317,6 +331,10 @@
     document.querySelectorAll('.nav-item').forEach(function (tab) {
       tab.classList.toggle('active', tab.dataset.tabId === id);
     });
+    document.querySelectorAll('.browser-tab').forEach(function (tab) {
+      tab.classList.toggle('active', tab.dataset.tabId === id);
+    });
+    if (ui.browserAddr) ui.browserAddr.value = 'evil://' + id;
     ui.homeView.classList.toggle('hidden', id !== 'home');
     ui.catalogView.classList.toggle('hidden', ['games', 'random', 'bookmarks'].indexOf(id) < 0);
     ui.settingsView.classList.toggle('hidden', id !== 'settings');
@@ -506,6 +524,50 @@
       else document.exitFullscreen().catch(function () {});
     });
 
+    if (ui.browserTabs) {
+      ui.browserTabs.addEventListener('click', function (e) {
+        const tab = e.target.closest('.browser-tab');
+        if (!tab) return;
+        if (tab.dataset.tabId === 'random' && prefs.tab === 'random') {
+          mixPicks();
+          paintGrid();
+          notify('Shuffled', pics.games);
+          return;
+        }
+        openTab(tab.dataset.tabId);
+      });
+    }
+
+    if (ui.browserAddr) {
+      ui.browserAddr.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') runQuery(ui.browserAddr.value);
+      });
+    }
+
+    if (ui.browserFs) {
+      ui.browserFs.addEventListener('click', function () {
+        if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(function () {});
+        else document.exitFullscreen().catch(function () {});
+      });
+    }
+
+    if (ui.chooser) {
+      ui.chooser.addEventListener('click', function (e) {
+        const pick = e.target.closest('[data-layout-pick]');
+        if (pick) {
+          ui.chooser.querySelectorAll('.pick-card').forEach(function (card) {
+            card.classList.toggle('selected', card === pick);
+          });
+          return;
+        }
+        if (e.target.closest('#layout-next-btn')) {
+          const sel = ui.chooser.querySelector('.pick-card.selected') || ui.chooser.querySelector('[data-layout-pick="side"]');
+          setLayout(sel.dataset.layoutPick);
+          ui.chooser.classList.add('hidden');
+        }
+      });
+    }
+
     if (ui.catalogSearch) {
       ui.catalogSearch.addEventListener('input', function () {
         prefs.catalogQuery = ui.catalogSearch.value;
@@ -558,6 +620,7 @@
 
     wireOptions(ui.themeGrid, 'theme', setTheme, 'Theme');
     wireOptions(ui.launchGrid, 'launch', setLaunch, 'Launch');
+    wireOptions(ui.layoutGrid, 'layout', setLayout, 'Layout');
     wireOptions(ui.searchModeGrid, 'searchmode', setSearchMode, 'Search');
     wireOptions(ui.densityGrid, 'density', setDensity, 'Cards');
     wireOptions(ui.motionGrid, 'motion', setMotion, 'Motion');
@@ -577,6 +640,7 @@
       setFont('clean');
       setTheme('dark');
       setLaunch('player');
+      setLayout('side');
       setSearchMode('games');
       setDensity('normal');
       setMotion('on');
@@ -629,10 +693,12 @@
   });
 
   function start() {
+    const firstRun = !localStorage.getItem('evil_ubg_layout');
     setDisguise(prefs.cloak);
     setFont(prefs.font);
     setTheme(prefs.theme);
     setLaunch(prefs.launch);
+    setLayout(prefs.layout || 'side');
     setSearchMode(prefs.searchMode);
     setDensity(prefs.density);
     setMotion(prefs.motion);
@@ -642,6 +708,7 @@
     wire();
     openTab('home');
     boot();
+    if (firstRun && ui.chooser) ui.chooser.classList.remove('hidden');
   }
 
   if (document.readyState === 'loading') {
