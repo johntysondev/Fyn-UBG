@@ -842,4 +842,5 @@ window.EVIL_GAMES = [
   { id: "gn-moto-x3m-2", title: "Moto X3M 2", category: "driving", badge: "HTML", icon: "default", desc: "Single-file HTML game by MadPuffers.", file: "games/moto-x3m-2.html", cover: "covers-main/97.png" },
   { id: "gn-moto-x3m-3", title: "Moto X3M 3", category: "driving", badge: "HTML", icon: "default", desc: "Single-file HTML game by MadPuffers.", file: "games/moto-x3m-3.html", cover: "covers-main/98.png" },
   { id: "gn-motox3m-6-spooky-land", title: "Moto X3M Spooky", category: "driving", badge: "HTML", icon: "default", desc: "Single-file HTML game by MadPuffers.", file: "games/motox3m-6-spooky-land.html", cover: "covers-main/99.png" },
+  { id: "gn-deltarune", title: "Deltarune", category: "arcade", badge: "HTML", icon: "default", desc: "HTML game by Toby Fox.", folder: "games/Deltarune-HTML-main", cover: "covers-main/deltarune.png" },
 ];

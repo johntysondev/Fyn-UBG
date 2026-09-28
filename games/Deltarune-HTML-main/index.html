@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="style.css">
+  <title>Deltarune</title>
+</head>
+<body>
+  <div class="logo-container">
+    <img src="logo.png" alt="Logo" class="logo">
+  </div>
+  <div class="menu" id="menu"></div>
+  
+  <audio id="drone" loop autoplay>
+    <source src="audios/NGAHHH!!.ogg" type="audio/ogg">
+    Your browser does not support the audio element.
+  </audio>
+  <script>
+    // Configuration
+    const CHAPTERS = [
+      { number: 1, title: "The Beginning", available: true },
+      { number: 2, title: "A Cyber's World", available: true },
+      { number: 3, title: "Late Night", available: true },
+      { number: 4, title: "Prophecy", available: true },
+      { number: 5, title: "--", available: false },
+      { number: 6, title: "--", available: false },
+      { number: 7, title: "--", available: false }
+    ];
+
+    // State
+    let gameStarted = false;
+    let selectedChapter = null;
+
+  // Audio elements
+  const audio = document.getElementById('drone');
+    const menuMoveAudio = new Audio('audios/snd_menumove.mp3');
+    const menuSelectAudio = new Audio('audios/snd_select.mp3');
+
+    // Initialize menu
+    function initMenu() {
+      const menu = document.getElementById('menu');
+      
+      CHAPTERS.forEach((chapter, index) => {
+        const row = document.createElement('a');
+        row.className = chapter.available ? 'row' : 'disabled-row';
+        // Keep href inert for in-page loading; store chapter number and availability on dataset
+        row.href = '#';
+        row.dataset.chapter = chapter.number;
+        row.dataset.available = chapter.available ? '1' : '0';
+        
+        row.innerHTML = `
+          <span class="chapter">Chapter ${chapter.number}</span>
+          <span class="${chapter.available ? 'title' : 'disabled-title'}">${chapter.title}</span>
+          <img src="icons/${chapter.available ? chapter.number : 0}.png">
+        `;
+        
+        menu.appendChild(row);
+      });
+    }
+
+    // Audio control - Fixed to restart audio properly
+    function restartAudio() {
+      audio.currentTime = 0;
+      audio.play().catch(err => {
+        console.debug('Audio play failed:', err);
+        // If autoplay was blocked, resume on first user interaction
+        const resume = () => {
+          audio.play().catch(e => console.debug('Audio resume failed:', e));
+          window.removeEventListener('click', resume);
+          window.removeEventListener('keydown', resume);
+        };
+        window.addEventListener('click', resume, { once: true });
+        window.addEventListener('keydown', resume, { once: true });
+      });
+    }
+
+    // Chapter loading — load chapter in an in-page iframe overlay
+    function loadChapter(chapter) {
+      if (!chapter) return;
+      const chapterNum = String(chapter);
+      // If chapter is not available, notify
+      const chapObj = CHAPTERS.find(c => String(c.number) === chapterNum);
+      if (!chapObj || !chapObj.available) {
+        alert(`Chapter ${chapterNum} coming soon!`);
+        return;
+      }
+
+      // Prevent multiple loads
+      if (gameStarted) return;
+      gameStarted = true;
+
+      // Mute background drone while in-game
+      audio.muted = true;
+
+      // Create overlay
+      const overlay = document.createElement('div');
+      overlay.className = 'chapter-overlay';
+      overlay.id = 'chapter-overlay';
+
+      const iframe = document.createElement('iframe');
+      iframe.src = `chapter${chapterNum}/index.html`;
+      iframe.setAttribute('allow', 'fullscreen');
+      iframe.setAttribute('sandbox', 'allow-forms allow-scripts allow-same-origin allow-modals allow-popups');
+
+      const closeBtn = document.createElement('button');
+      closeBtn.className = 'close-btn';
+      closeBtn.textContent = 'Close (Esc)';
+      closeBtn.addEventListener('click', () => closeChapter());
+
+      overlay.appendChild(closeBtn);
+      overlay.appendChild(iframe);
+      document.body.appendChild(overlay);
+
+      // Focus the iframe so it receives input
+      iframe.focus();
+
+      // Allow Escape key to close the overlay
+      const escHandler = (e) => {
+        if (e.key === 'Escape') {
+          closeChapter();
+        }
+      };
+      window.addEventListener('keydown', escHandler);
+
+      // Close function removes overlay and restores menu/audio state
+      function closeChapter() {
+        const ov = document.getElementById('chapter-overlay');
+        if (ov) ov.remove();
+        gameStarted = false;
+        audio.muted = false;
+        restartAudio();
+        window.removeEventListener('keydown', escHandler);
+      }
+    }
+
+    // Navigation
+    function selectChapter(index) {
+      const rows = document.querySelectorAll('.row');
+      if (selectedChapter !== null) {
+        rows[selectedChapter].classList.remove("selected");
+      }
+      selectedChapter = index;
+      rows[selectedChapter].classList.add("selected");
+      menuMoveAudio.play();
+    }
+
+    function navigateUp() {
+      const rows = document.querySelectorAll('.row');
+      if (selectedChapter === null) {
+        selectChapter(0);
+      } else {
+        const newIndex = selectedChapter === 0 ? rows.length - 1 : selectedChapter - 1;
+        selectChapter(newIndex);
+      }
+    }
+
+    function navigateDown() {
+      const rows = document.querySelectorAll('.row');
+      if (selectedChapter === null) {
+        selectChapter(0);
+      } else {
+        const newIndex = selectedChapter === rows.length - 1 ? 0 : selectedChapter + 1;
+        selectChapter(newIndex);
+      }
+    }
+
+    function activateSelected() {
+      if (selectedChapter !== null) {
+        const rows = document.querySelectorAll('.row');
+        const row = rows[selectedChapter];
+        if (!row) return;
+        menuSelectAudio.play();
+        const chap = row.dataset.chapter;
+        loadChapter(chap);
+      }
+    }
+
+    // Event listeners
+    document.addEventListener('keydown', (event) => {
+      if (gameStarted) return;
+      
+      switch(event.key) {
+        case 'ArrowUp':
+          navigateUp();
+          break;
+        case 'ArrowDown':
+          navigateDown();
+          break;
+        case 'Enter':
+          activateSelected();
+          break;
+      }
+    });
+
+    // Mouse interactions
+    function setupMouseEvents() {
+      document.querySelectorAll('.row').forEach((row, index) => {
+        row.addEventListener('mouseenter', () => {
+          if (!gameStarted) {
+            menuMoveAudio.play();
+            if (selectedChapter !== null) {
+              document.querySelectorAll('.row')[selectedChapter].classList.remove("selected");
+            }
+            selectChapter(index);
+          }
+        });
+        
+        row.addEventListener('click', (e) => {
+          e.preventDefault();
+          if (!gameStarted) {
+            menuSelectAudio.play();
+            const chap = row.dataset.chapter;
+            if (row.dataset.available === '1') {
+              loadChapter(chap);
+            } else {
+              alert(`Chapter ${chap} coming soon!`);
+            }
+          }
+        });
+      });
+    }
+
+    // Handle page visibility changes to restart audio
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden && !gameStarted) {
+        restartAudio();
+      }
+    });
+
+    // Handle when returning from a chapter (page load)
+    window.addEventListener('pageshow', (event) => {
+      if (event.persisted || performance.navigation.type === 2) {
+        // Page was restored from cache (back button)
+        gameStarted = false;
+        // Unmute background audio when returning to menu and try to restart it
+        audio.muted = false;
+        restartAudio();
+      }
+    });
+
+    // Analytics
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-WLTG1S4STB');
+
+  // Initialize
+  initMenu();
+  setupMouseEvents();
+    
+  // Try to play audio on load
+  restartAudio();
+  </script>
+  <script src="savesync.js"></script>
+</body>
+</html>
