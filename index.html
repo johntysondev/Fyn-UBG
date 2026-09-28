@@ -10,7 +10,7 @@
 <link href="https://fonts.googleapis.com" rel="preconnect">
 <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap">
-<link href="css/styles.css" rel="stylesheet">
+<link href="css/styles.css?v=2" rel="stylesheet">
 </head>
 <body data-theme="mocha" data-layout="side">
 <div id="loader-screen">
@@ -37,7 +37,7 @@
 <div class="bnav-row">
 <div class="baddress-wrap">
 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-<input id="browser-address" class="baddress-input" type="text" placeholder="search or enter a game" autocomplete="off">
+<input id="browser-address" class="baddress-input" type="text" placeholder="search or enter a url" autocomplete="off">
 </div>
 <button id="browser-fullscreen-btn" class="nav-icon-btn" title="Fullscreen"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg></button>
 </div>
@@ -62,7 +62,7 @@
 <h1 id="brand-logo-interactive" class="brand-logo-text" title="fyn ubg"><span class="fyn-word">fyn</span> <span class="ubg-tag-word">ubg</span></h1>
 </div>
 <div class="center-search-wrap">
-<input id="center-search-input" class="center-search-input" type="text" placeholder="search or enter a game..." autocomplete="off">
+<input id="center-search-input" class="center-search-input" type="text" placeholder="search or enter a url..." autocomplete="off">
 <button id="center-go-btn" class="center-go-btn"><span>Go</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg></button>
 </div>
 </div>
@@ -118,6 +118,18 @@
 <button data-launch="tab" class="theme-card"><strong>New tab</strong></button>
 </div>
 </div>
+<div class="setting-group">
+<label class="setting-label">Proxy</label>
+<div id="proxy-selector-grid" class="theme-selector-grid">
+<button data-proxy="on" class="theme-card active"><strong>On</strong></button>
+<button data-proxy="off" class="theme-card"><strong>Off</strong></button>
+</div>
+</div>
+<div class="setting-group">
+<label class="setting-label">WISP server</label>
+<input id="wisp-url-input" type="text" placeholder="wss://your-wisp-server/" autocomplete="off">
+</div>
+
 <div class="setting-group">
 <label class="setting-label">Home Search</label>
 <div id="searchmode-selector-grid" class="theme-selector-grid">
@@ -243,7 +255,10 @@
 </div>
 </div>
 <div id="toast-container" class="toast-container"></div>
-<script src="js/games-data.js"></script>
-<script src="js/app.js"></script>
+<script src="js/games-data.js?v=2"></script>
+<script src="sj/scramjet.js?v=1"></script>
+<script src="sj/controller.api.js?v=1"></script>
+<script type="module" src="sj/sj.js?v=1"></script>
+<script src="js/app.js?v=2"></script>
 </body>
 </html>

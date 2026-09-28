@@ -7,6 +7,8 @@
   };
   const write = (k, v) => localStorage.setItem(k, v);
 
+  const DEFAULT_WISP = 'wss://arctic.lat/wisp';
+
   let favs = [];
   try { favs = JSON.parse(read('evil_ubg_favs', '[]')) || []; } catch (e) { favs = []; }
 
@@ -22,6 +24,8 @@
     panicUrl: read('evil_ubg_panic_url', 'https://classroom.google.com'),
     antiClose: read('evil_ubg_anti_close', 'false') === 'true',
     launch: read('evil_ubg_launch', 'player'),
+    proxy: read('evil_ubg_proxy', 'on'),
+    wisp: read('evil_ubg_wisp', '') || DEFAULT_WISP,
     layout: read('evil_ubg_layout', ''),
     searchMode: read('evil_ubg_searchmode', 'games'),
     density: read('evil_ubg_density', 'normal'),
@@ -69,6 +73,8 @@
     fontGrid: $('font-selector-grid'),
     themeGrid: $('theme-selector-grid'),
     launchGrid: $('launch-selector-grid'),
+    proxyGrid: $('proxy-selector-grid'),
+    wispInput: $('wisp-url-input'),
     layoutGrid: $('layout-selector-grid'),
     searchModeGrid: $('searchmode-selector-grid'),
     densityGrid: $('density-selector-grid'),
@@ -198,6 +204,30 @@
     markActive(ui.launchGrid, 'launch', v);
   }
 
+  function setProxy(key) {
+    const v = (key === 'off') ? 'off' : 'on';
+    prefs.proxy = v;
+    write('evil_ubg_proxy', v);
+    markActive(ui.proxyGrid, 'proxy', v);
+  }
+
+  let sjTried = false;
+
+  function ensureProxy() {
+    if (prefs.proxy !== 'on') return Promise.resolve(false);
+    if (typeof window.SJ === 'undefined') return Promise.resolve(false);
+    if (window.SJ.ready) return Promise.resolve(true);
+    if (sjTried && window.SJ.failed) return Promise.resolve(false);
+    sjTried = true;
+    return window.SJ.init(prefs.wisp).then(function (ok) {
+      if (!ok && !window.SJ.warned) {
+        window.SJ.warned = true;
+        notify('Proxy unavailable — loading directly. Set a WISP URL in Settings.', pics.settings);
+      }
+      return ok;
+    });
+  }
+
   function setLayout(key) {
     const v = (key === 'browser') ? 'browser' : 'side';
     prefs.layout = v;
@@ -260,8 +290,18 @@
       return;
     }
     if (prefs.launch === 'tab') {
-      window.open(url, '_blank', 'noopener');
-      window.location.href = url;
+      const abs = new URL(url, location.href).href;
+      ensureProxy().then(function (ok) {
+        if (ok) {
+          const enc = window.SJ.encode(abs);
+          if (enc) {
+            window.open(enc, '_blank', 'noopener');
+            return;
+          }
+        }
+        window.open(url, '_blank', 'noopener');
+        window.location.href = url;
+      });
       return;
     }
     showGame(game);
@@ -272,12 +312,12 @@
   function showGame(game) {
     prefs.playing = game;
     const url = gameUrl(game);
+    const abs = new URL(url, location.href).href;
     ui.playerTitle.textContent = game.title;
     ui.playerBox.innerHTML = '';
     ui.playerBlocked.classList.add('hidden');
     ui.playerLoading.classList.remove('hidden');
     const frame = document.createElement('iframe');
-    frame.src = url;
     frame.allow = 'autoplay; fullscreen; gamepad';
     frame.allowFullscreen = true;
     frame.title = game.title;
@@ -287,6 +327,13 @@
     });
     ui.playerBox.appendChild(frame);
     ui.player.classList.remove('hidden');
+    ensureProxy().then(function (ok) {
+      if (prefs.playing !== game) return;
+      if (ok) {
+        if (window.SJ.play(frame, abs)) return;
+      }
+      frame.src = abs;
+    });
   }
 
   function watchForStuck() {
@@ -320,9 +367,16 @@
 
   function playInTab() {
     if (!prefs.playing) return;
-    const url = gameUrl(prefs.playing);
-    const win = window.open(url, '_blank', 'noopener');
-    if (!win) notify('Popup blocked — allow popups for new tabs', pics.default);
+    const abs = new URL(gameUrl(prefs.playing), location.href).href;
+    ensureProxy().then(function (ok) {
+      let target = abs;
+      if (ok) {
+        const enc = window.SJ.encode(abs);
+        if (enc) target = enc;
+      }
+      const win = window.open(target, '_blank', 'noopener');
+      if (!win) notify('Popup blocked — allow popups for new tabs', pics.default);
+    });
   }
 
   function openTab(id) {
@@ -351,20 +405,27 @@
     }
   }
 
+  function openWebUrl(url) {
+    let abs = (url || '').trim();
+    if (!abs) return;
+    if (abs.indexOf('http://') !== 0 && abs.indexOf('https://') !== 0) abs = 'https://' + abs;
+    let host = abs;
+    try { host = new URL(abs).hostname; } catch (e) {}
+    showGame({ id: 'web-' + Date.now(), title: host, embedUrl: abs });
+  }
+
   function runQuery(raw) {
     const q = (raw || '').trim();
     if (!q) return;
     if (q.indexOf('http://') === 0 || q.indexOf('https://') === 0 || q.indexOf('.com') > 0 || q.indexOf('.org') > 0 || q.indexOf('.io') > 0 || q.indexOf('.net') > 0) {
-      let url = q;
-      if (url.indexOf('http://') !== 0 && url.indexOf('https://') !== 0) url = 'https://' + url;
-      window.open(url, '_blank', 'noopener');
+      openWebUrl(q);
       return;
     }
     prefs.query = q;
     prefs.catalogQuery = q;
     if (ui.catalogSearch) ui.catalogSearch.value = q;
     if (prefs.searchMode === 'google') {
-      window.open('https://www.google.com/search?q=' + encodeURIComponent(q), '_blank', 'noopener');
+      openWebUrl('https://www.google.com/search?q=' + encodeURIComponent(q));
       return;
     }
     openTab('games');
@@ -620,6 +681,7 @@
 
     wireOptions(ui.themeGrid, 'theme', setTheme, 'Theme');
     wireOptions(ui.launchGrid, 'launch', setLaunch, 'Launch');
+    wireOptions(ui.proxyGrid, 'proxy', setProxy, 'Proxy');
     wireOptions(ui.layoutGrid, 'layout', setLayout, 'Layout');
     wireOptions(ui.searchModeGrid, 'searchmode', setSearchMode, 'Search');
     wireOptions(ui.densityGrid, 'density', setDensity, 'Cards');
@@ -632,6 +694,17 @@
       write('evil_ubg_panic_key', prefs.panicKey);
       write('evil_ubg_panic_url', prefs.panicUrl);
       write('evil_ubg_anti_close', prefs.antiClose);
+      const wisp = (ui.wispInput.value || '').trim() || DEFAULT_WISP;
+      if (wisp !== prefs.wisp) {
+        prefs.wisp = wisp;
+        write('evil_ubg_wisp', wisp);
+        if (typeof window.SJ !== 'undefined' && window.SJ.ready) {
+          window.SJ.retarget(wisp);
+        } else if (typeof window.SJ !== 'undefined') {
+          window.SJ.failed = false;
+        }
+        sjTried = false;
+      }
       notify('Settings saved', pics.settings);
     });
 
@@ -640,6 +713,7 @@
       setFont('clean');
       setTheme('mocha');
       setLaunch('player');
+      setProxy('on');
       setLayout('side');
       setSearchMode('games');
       setDensity('normal');
@@ -647,6 +721,9 @@
       prefs.panicKey = ']';
       prefs.panicUrl = 'https://classroom.google.com';
       prefs.antiClose = false;
+      prefs.wisp = DEFAULT_WISP;
+      write('evil_ubg_wisp', DEFAULT_WISP);
+      ui.wispInput.value = DEFAULT_WISP;
       ui.panicKeyInput.value = ']';
       ui.panicUrlInput.value = 'https://classroom.google.com';
       ui.antiCloseBox.checked = false;
@@ -694,10 +771,12 @@
 
   function start() {
     const firstRun = !localStorage.getItem('evil_ubg_layout');
+    if (!localStorage.getItem('evil_ubg_wisp')) write('evil_ubg_wisp', prefs.wisp);
     setDisguise(prefs.cloak);
     setFont(prefs.font);
     setTheme(prefs.theme);
     setLaunch(prefs.launch);
+    setProxy(prefs.proxy);
     setLayout(prefs.layout || 'side');
     setSearchMode(prefs.searchMode);
     setDensity(prefs.density);
@@ -705,6 +784,7 @@
     ui.panicKeyInput.value = prefs.panicKey;
     ui.panicUrlInput.value = prefs.panicUrl;
     ui.antiCloseBox.checked = prefs.antiClose;
+    ui.wispInput.value = prefs.wisp;
     wire();
     openTab('home');
     boot();
