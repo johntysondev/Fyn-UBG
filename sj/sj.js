@@ -34,6 +34,8 @@ window.SJ = {
     try {
       if (!('serviceWorker' in navigator)) throw new Error('sw unsupported');
       if (typeof $scramjetController === 'undefined') throw new Error('controller lib missing');
+      const alive = await this.ping(wisp);
+      if (!alive) throw new Error('wisp unreachable');
       const reg = await navigator.serviceWorker.register('sj/sw.js', { scope: 'sj/' });
       await waitControl(8000);
       const sw = navigator.serviceWorker.controller || reg.active;
@@ -70,6 +72,28 @@ window.SJ = {
     } catch (e) {
       return false;
     }
+  },
+
+  ping(wisp) {
+    return new Promise((resolve) => {
+      let done = false;
+      const finish = (v) => {
+        if (done) return;
+        done = true;
+        try { ws.close(); } catch (e) {}
+        resolve(v);
+      };
+      let ws = null;
+      try {
+        ws = new WebSocket(wisp);
+      } catch (e) {
+        finish(false);
+        return;
+      }
+      const t = setTimeout(() => finish(false), 5000);
+      ws.onopen = () => { clearTimeout(t); finish(true); };
+      ws.onerror = () => { clearTimeout(t); finish(false); };
+    });
   },
 
   play(iframe, absUrl) {

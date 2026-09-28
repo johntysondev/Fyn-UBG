@@ -398,6 +398,9 @@ body[data-layout="side"] .browser-top {
 }
 
 .btab-strip {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
   padding: 8px 12px 0;
 }
 
@@ -406,10 +409,30 @@ body[data-layout="side"] .browser-top {
   align-items: flex-end;
   gap: 4px;
   overflow-x: auto;
+  flex: 1;
 }
 
 .btabs::-webkit-scrollbar {
   display: none;
+}
+
+.browser-newtab-btn {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  margin-bottom: 3px;
+  border: 1px solid var(--border-light);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.browser-newtab-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 .browser-tab {
@@ -441,6 +464,24 @@ body[data-layout="side"] .browser-top {
 .browser-tab.active span {
   color: var(--accent);
   font-weight: 700;
+}
+
+.browser-tab-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  margin-left: 2px;
+  border-radius: 4px;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1;
+}
+
+.browser-tab-close:hover {
+  background: var(--bg-card-hover);
+  color: var(--text-primary);
 }
 
 .bnav-row {
@@ -904,14 +945,18 @@ body[data-layout="side"] .browser-top {
   font-size: 11.5px;
 }
 
+.catalog-search-row {
+  margin-top: -6px;
+}
+
 .catalog-search-wrap {
   display: flex;
   align-items: center;
-  gap: 8px;
-  min-width: 200px;
-  padding: 7px 12px;
-  border: 1px solid var(--border-light);
-  border-radius: 6px;
+  gap: 10px;
+  width: 100%;
+  padding: 13px 18px;
+  border: 1px solid var(--border-medium);
+  border-radius: 12px;
   background: var(--bg-input);
   color: var(--text-muted);
 }
@@ -928,11 +973,37 @@ body[data-layout="side"] .browser-top {
   background: transparent;
   color: var(--text-primary);
   font-family: var(--font-body);
-  font-size: 13px;
+  font-size: 15px;
 }
 
 .catalog-search-input::placeholder {
   color: var(--text-dim);
+}
+
+.quick-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 16px;
+  max-width: 560px;
+}
+
+.quick-link {
+  padding: 7px 16px;
+  border: 1px solid var(--border-light);
+  border-radius: 999px;
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  font-family: var(--font-body);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.quick-link:hover {
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 .games-grid {

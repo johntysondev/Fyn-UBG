@@ -55,6 +55,7 @@
     loaderBar: $('loader-bar'),
     tabList: $('side-nav-list'),
     browserTabs: $('browser-tab-strip'),
+    browserNewTab: $('browser-newtab-btn'),
     browserAddr: $('browser-address'),
     browserFs: $('browser-fullscreen-btn'),
     chooser: $('layout-chooser'),
@@ -330,6 +331,7 @@
     });
     ui.playerBox.appendChild(frame);
     ui.player.classList.remove('hidden');
+    frame.dataset.direct = abs;
     ensureProxy().then(function (ok) {
       if (prefs.playing !== game) return;
       if (ok) {
@@ -355,8 +357,17 @@
         if (!doc || !doc.body) {
           stuck = true;
         } else {
+          const text = (doc.body.innerText || '').trim();
+          if (text.indexOf('Internal Service Worker Error') >= 0 && !frame.dataset.fbk) {
+            frame.dataset.fbk = '1';
+            frame.src = frame.dataset.direct || frame.src;
+            ui.playerProxy.textContent = 'DIRECT';
+            ui.playerProxy.classList.remove('on');
+            notify('Proxy blocked it — loaded directly instead', pics.settings);
+            return;
+          }
           const live = !!doc.querySelector('canvas, video, object, embed, svg');
-          stuck = !live && (doc.body.innerText || '').trim().length < 20;
+          stuck = !live && text.length < 20;
         }
       } catch (e) {
         return;
@@ -386,15 +397,89 @@
     });
   }
 
-  function openTab(id) {
+  const TAB_TITLES = { home: 'Home', games: 'Games', random: 'Random', bookmarks: 'Saved', settings: 'Settings' };
+  const TAB_ICONS = {
+    home: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>',
+    games: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" x2="10" y1="11" y2="11"/><line x1="8" x2="8" y1="9" y2="13"/><line x1="15" x2="15.01" y1="12" y2="12"/><line x1="18" x2="18.01" y1="10" y2="10"/><path d="M17.32 5H6.68a4 4 0 0 0-3.978 3.59c-.006.052-.01.101-.017.152C2.604 9.416 2 14.456 2 16a3 3 0 0 0 3 3c1 0 1.5-.5 2-1l1.414-1.414A2 2 0 0 1 9.828 16h4.344a2 2 0 0 1 1.414.586L17 18c.5.5 1 1 2 1a3 3 0 0 0 3-3c0-1.545-.604-6.584-.685-7.258-.007-.05-.011-.1-.017-.151A4 4 0 0 0 17.32 5z"/></svg>',
+    random: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 14 4 4-4 4"/><path d="m18 2 4 4-4 4"/><path d="M2 18h1.973a4 4 0 0 0 3.3-1.7l5.454-8.6a4 4 0 0 1 3.3-1.7H22"/><path d="M2 6h1.972a4 4 0 0 1 3.6 2.2"/><path d="M22 18h-6.041a4 4 0 0 1-3.3-1.8l-.359-.45"/></svg>',
+    bookmarks: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2 2 0 0 1 2 2v15a1 1 0 0 1-1.496.868l-4.512-2.578a2 2 0 0 0-1.984 0l-4.512 2.578A1 1 0 0 1 5 20V5a2 2 0 0 1 2-2z"/></svg>',
+    settings: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"/><circle cx="12" cy="12" r="3"/></svg>'
+  };
+
+  let browserTabs = [
+    { key: 't-home', view: 'home' },
+    { key: 't-games', view: 'games' },
+    { key: 't-random', view: 'random' },
+    { key: 't-saved', view: 'bookmarks' },
+    { key: 't-settings', view: 'settings' }
+  ];
+  let activeTabKey = 't-home';
+  let tabSeq = 0;
+
+  function tabLabel(t) {
+    return t.title || TAB_TITLES[t.view] || t.view;
+  }
+
+  function renderBrowserTabs() {
+    if (!ui.browserTabs) return;
+    ui.browserTabs.innerHTML = '';
+    browserTabs.forEach(function (t) {
+      const b = document.createElement('button');
+      b.className = 'browser-tab' + (t.key === activeTabKey ? ' active' : '');
+      b.dataset.tabId = t.view;
+      b.dataset.key = t.key;
+      b.innerHTML = (TAB_ICONS[t.view] || '') + '<span>' + tabLabel(t) + '</span>' +
+        (browserTabs.length > 1 ? '<span class="browser-tab-close" data-close="' + t.key + '">×</span>' : '');
+      ui.browserTabs.appendChild(b);
+    });
+  }
+
+  function findTab(key) {
+    for (let i = 0; i < browserTabs.length; i++) {
+      if (browserTabs[i].key === key) return i;
+    }
+    return -1;
+  }
+
+  function syncBrowserTabs(view, key) {
+    if (key && findTab(key) >= 0) {
+      activeTabKey = key;
+    } else {
+      const same = browserTabs.filter(function (t) { return t.view === view; });
+      if (same.length) activeTabKey = same[0].key;
+    }
+    renderBrowserTabs();
+  }
+
+  function addBrowserTab() {
+    tabSeq++;
+    const t = { key: 't-new-' + tabSeq, view: 'home', title: 'New Tab' };
+    browserTabs.push(t);
+    openTab('home', t.key);
+    notify('New tab', pics.games);
+  }
+
+  function closeBrowserTab(key) {
+    if (browserTabs.length <= 1) return;
+    const at = findTab(key);
+    if (at < 0) return;
+    const wasActive = browserTabs[at].key === activeTabKey;
+    browserTabs.splice(at, 1);
+    if (wasActive) {
+      const next = browserTabs[Math.min(at, browserTabs.length - 1)];
+      openTab(next.view, next.key);
+    } else {
+      renderBrowserTabs();
+    }
+  }
+
+  function openTab(id, tabKey) {
     prefs.tab = id;
     if (!ui.player.classList.contains('hidden')) stopGame();
     document.querySelectorAll('.nav-item').forEach(function (tab) {
       tab.classList.toggle('active', tab.dataset.tabId === id);
     });
-    document.querySelectorAll('.browser-tab').forEach(function (tab) {
-      tab.classList.toggle('active', tab.dataset.tabId === id);
-    });
+    syncBrowserTabs(id, tabKey);
     if (ui.browserAddr) ui.browserAddr.value = 'fyn://' + id;
     ui.homeView.classList.toggle('hidden', id !== 'home');
     ui.catalogView.classList.toggle('hidden', ['games', 'random', 'bookmarks'].indexOf(id) < 0);
@@ -421,10 +506,55 @@
     showGame({ id: 'web-' + Date.now(), title: host, embedUrl: abs });
   }
 
+  const QUICK_LINKS = [
+    { label: 'Google', url: 'https://www.google.com' },
+    { label: 'YouTube', url: 'https://www.youtube.com' },
+    { label: 'TikTok', url: 'https://www.tiktok.com' },
+    { label: 'Discord', url: 'https://discord.com/app' },
+    { label: 'ChatGPT', url: 'https://chat.openai.com' },
+    { label: 'Twitch', url: 'https://www.twitch.tv' }
+  ];
+
+  function paintQuickLinks() {
+    const box = $('quick-links');
+    if (!box) return;
+    box.innerHTML = '';
+    QUICK_LINKS.forEach(function (q) {
+      const b = document.createElement('button');
+      b.className = 'quick-link';
+      b.textContent = q.label;
+      b.addEventListener('click', function () {
+        openWebUrl(q.url);
+      });
+      box.appendChild(b);
+    });
+  }
+
+  function gameMatches(q) {
+    const needle = (q || '').trim().toLowerCase();
+    if (!needle) return false;
+    return (window.EVIL_GAMES || []).some(function (g) {
+      return g.title && g.title.toLowerCase().indexOf(needle) >= 0;
+    });
+  }
+
   function runQuery(raw) {
     const q = (raw || '').trim();
     if (!q) return;
-    if (q.indexOf('http://') === 0 || q.indexOf('https://') === 0 || q.indexOf('.com') > 0 || q.indexOf('.org') > 0 || q.indexOf('.io') > 0 || q.indexOf('.net') > 0) {
+    const explicit = q.indexOf('http://') === 0 || q.indexOf('https://') === 0 || q.toLowerCase().indexOf('www.') === 0;
+    if (explicit) {
+      openWebUrl(q);
+      return;
+    }
+    if (gameMatches(q)) {
+      prefs.query = q;
+      prefs.catalogQuery = q;
+      if (ui.catalogSearch) ui.catalogSearch.value = q;
+      openTab('games');
+      notify('Searching games: "' + q + '"', pics.games);
+      return;
+    }
+    if (!/\s/.test(q) && (q.indexOf('.com') > 0 || q.indexOf('.org') > 0 || q.indexOf('.io') > 0 || q.indexOf('.net') > 0)) {
       openWebUrl(q);
       return;
     }
@@ -594,16 +724,26 @@
 
     if (ui.browserTabs) {
       ui.browserTabs.addEventListener('click', function (e) {
+        const closer = e.target.closest('[data-close]');
+        if (closer) {
+          e.stopPropagation();
+          closeBrowserTab(closer.dataset.close);
+          return;
+        }
         const tab = e.target.closest('.browser-tab');
         if (!tab) return;
-        if (tab.dataset.tabId === 'random' && prefs.tab === 'random') {
+        if (tab.dataset.tabId === 'random' && prefs.tab === 'random' && tab.dataset.key === activeTabKey) {
           mixPicks();
           paintGrid();
           notify('Shuffled', pics.games);
           return;
         }
-        openTab(tab.dataset.tabId);
+        openTab(tab.dataset.tabId, tab.dataset.key);
       });
+    }
+
+    if (ui.browserNewTab) {
+      ui.browserNewTab.addEventListener('click', addBrowserTab);
     }
 
     if (ui.browserAddr) {
@@ -797,6 +937,8 @@
     ui.antiCloseBox.checked = prefs.antiClose;
     ui.wispInput.value = prefs.wisp;
     wire();
+    renderBrowserTabs();
+    paintQuickLinks();
     openTab('home');
     boot();
     if (firstRun && ui.chooser) ui.chooser.classList.remove('hidden');
