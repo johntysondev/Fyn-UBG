@@ -7,7 +7,7 @@
   };
   const write = (k, v) => localStorage.setItem(k, v);
 
-  const DEFAULT_WISP = 'wss://arctic.lat/wisp';
+  const DEFAULT_WISP = 'wss://wisp.mercurywork.shop/';
 
   let favs = [];
   try { favs = JSON.parse(read('evil_ubg_favs', '[]')) || []; } catch (e) { favs = []; }
@@ -97,6 +97,7 @@
     playerBlockedReload: $('player-blocked-reload'),
     playerBlockedNewtab: $('player-blocked-newtab'),
     playerBlockedDismiss: $('player-blocked-dismiss'),
+    playerProxy: $('player-proxy-badge'),
     toasts: $('toast-container')
   };
 
@@ -314,6 +315,8 @@
     const url = gameUrl(game);
     const abs = new URL(url, location.href).href;
     ui.playerTitle.textContent = game.title;
+    ui.playerProxy.textContent = 'DIRECT';
+    ui.playerProxy.classList.remove('on');
     ui.playerBox.innerHTML = '';
     ui.playerBlocked.classList.add('hidden');
     ui.playerLoading.classList.remove('hidden');
@@ -330,7 +333,11 @@
     ensureProxy().then(function (ok) {
       if (prefs.playing !== game) return;
       if (ok) {
-        if (window.SJ.play(frame, abs)) return;
+        if (window.SJ.play(frame, abs)) {
+          ui.playerProxy.textContent = 'PROXY';
+          ui.playerProxy.classList.add('on');
+          return;
+        }
       }
       frame.src = abs;
     });
@@ -772,6 +779,10 @@
   function start() {
     const firstRun = !localStorage.getItem('evil_ubg_layout');
     if (!localStorage.getItem('evil_ubg_wisp')) write('evil_ubg_wisp', prefs.wisp);
+    if (localStorage.getItem('evil_ubg_wisp') === 'wss://arctic.lat/wisp') {
+      prefs.wisp = DEFAULT_WISP;
+      write('evil_ubg_wisp', DEFAULT_WISP);
+    }
     setDisguise(prefs.cloak);
     setFont(prefs.font);
     setTheme(prefs.theme);
