@@ -17,7 +17,7 @@
     favs: favs,
     cloak: read('evil_ubg_cloak', 'quizlet'),
     font: read('evil_ubg_font', 'clean'),
-    theme: read('evil_ubg_theme', 'dark'),
+    theme: read('evil_ubg_theme', 'mocha'),
     panicKey: read('evil_ubg_panic_key', ']'),
     panicUrl: read('evil_ubg_panic_url', 'https://classroom.google.com'),
     antiClose: read('evil_ubg_anti_close', 'false') === 'true',
@@ -183,8 +183,8 @@
   }
 
   function setTheme(key) {
-    const ok = ['dark', 'light', 'slate', 'navy'];
-    const v = ok.indexOf(key) >= 0 ? key : 'dark';
+    const ok = ['dark', 'light', 'slate', 'navy', 'mocha'];
+    const v = ok.indexOf(key) >= 0 ? key : 'mocha';
     document.body.dataset.theme = v;
     prefs.theme = v;
     write('evil_ubg_theme', v);
@@ -638,7 +638,7 @@
     ui.resetBtn.addEventListener('click', function () {
       setDisguise('quizlet');
       setFont('clean');
-      setTheme('dark');
+      setTheme('mocha');
       setLaunch('player');
       setLayout('side');
       setSearchMode('games');

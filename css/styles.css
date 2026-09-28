@@ -122,6 +122,26 @@ body[data-theme="navy"] {
   --text-dim: #4a5170;
 }
 
+body[data-theme="mocha"] {
+  --bg-black: #17100b;
+  --bg-chrome: #1f1510;
+  --bg-tab-active: #2b1d14;
+  --bg-tab-inactive: #140e09;
+  --bg-tab-hover: #231810;
+  --bg-card: #241811;
+  --bg-card-hover: #302015;
+  --bg-input: #140e09;
+  --border-light: rgba(240, 220, 190, 0.1);
+  --border-medium: rgba(240, 220, 190, 0.22);
+  --accent: #e09a52;
+  --accent-ink: #1c1109;
+  --accent-soft: rgba(224, 154, 82, 0.15);
+  --text-primary: #f3e9da;
+  --text-secondary: #d3c0a6;
+  --text-muted: #97816a;
+  --text-dim: #5f5142;
+}
+
 *, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
