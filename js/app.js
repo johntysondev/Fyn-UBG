@@ -7,7 +7,7 @@
   };
   const write = (k, v) => localStorage.setItem(k, v);
 
-  const DEFAULT_WISP = 'wss://wisp.mercurywork.shop/';
+  const DEFAULT_WISP = 'wss://zakaon.top/api/';
 
   let favs = [];
   try { favs = JSON.parse(read('evil_ubg_favs', '[]')) || []; } catch (e) { favs = []; }
@@ -919,7 +919,8 @@
   function start() {
     const firstRun = !localStorage.getItem('evil_ubg_layout');
     if (!localStorage.getItem('evil_ubg_wisp')) write('evil_ubg_wisp', prefs.wisp);
-    if (localStorage.getItem('evil_ubg_wisp') === 'wss://arctic.lat/wisp') {
+    const storedWisp = localStorage.getItem('evil_ubg_wisp');
+    if (storedWisp === 'wss://arctic.lat/wisp' || storedWisp === 'wss://wisp.mercurywork.shop/') {
       prefs.wisp = DEFAULT_WISP;
       write('evil_ubg_wisp', DEFAULT_WISP);
     }
