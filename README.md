@@ -1,4 +1,3 @@
-@ -0,0 +1,78 @@
 <div align="center">
 
 # fyn ubg
